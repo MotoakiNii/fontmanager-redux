@@ -35,8 +35,9 @@ static int convertWidth(float unit) {
 
 FontDescriptor *createFontDescriptor(CTFontDescriptorRef descriptor) {
   NSURL *url = (NSURL *) CTFontDescriptorCopyAttribute(descriptor, kCTFontURLAttribute);
-  NSString *psName = (NSString *) CTFontDescriptorCopyAttribute(descriptor, kCTFontNameAttribute);  
-  NSString *family = (NSString *) CTFontDescriptorCopyAttribute(descriptor, kCTFontFamilyNameAttribute);
+  NSString *psName = (NSString *) CTFontDescriptorCopyAttribute(descriptor, kCTFontNameAttribute);
+  CFStringRef lang = CFSTR("ja");
+  CFStringRef family = (CFStringRef)CTFontDescriptorCopyLocalizedAttribute(descriptor, kCTFontFamilyNameAttribute, &lang);
   NSString *style = (NSString *) CTFontDescriptorCopyAttribute(descriptor, kCTFontStyleNameAttribute);
   
   NSDictionary *traits = (NSDictionary *) CTFontDescriptorCopyAttribute(descriptor, kCTFontTraitsAttribute);
