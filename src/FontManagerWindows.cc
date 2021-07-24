@@ -80,7 +80,46 @@ char *getString(IDWriteFont *font, DWRITE_INFORMATIONAL_STRING_ID string_id) {
     res = new char[1];
     res[0] = '\0';
   }
+
+  return res;
+}
+
+// gets a en-us fixed string for a font
+char *getEnUsString(IDWriteFont *font, DWRITE_INFORMATIONAL_STRING_ID string_id) {
+  char *res = NULL;
+  IDWriteLocalizedStrings *strings = NULL;
+
+  BOOL exists = false;
+  HR(font->GetInformationalStrings(
+    string_id,
+    &strings,
+    &exists
+  ));
+
+  if (exists) {
+    unsigned int index = 0;
+    unsigned int len = 0;
+    WCHAR *str = NULL;
+
+    HR(strings->GetStringLength(index, &len));
+    str = new WCHAR[len + 1];
+
+    HR(strings->GetString(index, str, len + 1));
+
+    // convert to utf8
+    res = utf16ToUtf8(str);
+    delete str;
+
+    strings->Release();
+  } else {
+    res = getString(font, DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_NAME);
+  }
   
+  if (!res) {
+    res = new char[1];
+    res[0] = '\0';
+  }
+
   return res;
 }
 
@@ -118,18 +157,13 @@ FontDescriptor *resultFromFont(IDWriteFont *font) {
       HR(fileLoader->GetFilePathFromKey(referenceKey, referenceKeySize, name, nameLength + 1));
 
       char *psName = utf16ToUtf8(name);
-      char *postscriptName = getString(font, DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_NAME);
+      char *postscriptName = getEnUsString(font, DWRITE_INFORMATIONAL_STRING_PREFERRED_FAMILY_NAMES);
       char *family = getString(font, DWRITE_INFORMATIONAL_STRING_WIN32_FAMILY_NAMES);
       char *style = getString(font, DWRITE_INFORMATIONAL_STRING_WIN32_SUBFAMILY_NAMES);
 
-      bool monospace = false;
       // this method requires windows 7, so we need to cast to an IDWriteFontFace1
-
-      IDWriteFontFace1 *face1;
-      HRESULT hr = face->QueryInterface(__uuidof(IDWriteFontFace1), (void **)&face1);
-      if (SUCCEEDED(hr)) {
-        monospace = face1->IsMonospacedFont() == TRUE;
-      }
+      IDWriteFontFace1 *face1 = static_cast<IDWriteFontFace1 *>(face);
+      bool monospace = face1->IsMonospacedFont() == TRUE;
 
       res = new FontDescriptor(
         psName,
